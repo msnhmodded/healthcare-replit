@@ -1,0 +1,30 @@
+name = "shec-website"
+main = "dist/server/index.js"
+compatibility_date = "2024-01-15"
+node_compat = true
+
+[env.production]
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "shec-production"
+database_id = "your-production-database-id-here"
+
+[env.development]
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "shec-development"
+database_id = "your-development-database-id-here"
+
+# Optional: Custom domain configuration
+# [env.production.routes]
+# pattern = "shec.your-domain.com/*"
+# zone_name = "your-domain.com"
+
+# Optional: Environment variables
+# [env.production.vars]
+# ENVIRONMENT = "production"
+
+# Optional: KV storage for caching
+# [[env.production.kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
