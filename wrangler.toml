@@ -1,0 +1,39 @@
+name = "somali-health-equity-collective"
+main = "dist/index.js"
+compatibility_date = "2024-01-15"
+node_compat = true
+
+[env.production]
+# Production environment variables
+[env.production.vars]
+ENVIRONMENT = "production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "shec-production"
+database_id = "your-production-database-id-here"
+
+[env.development]
+# Development environment variables  
+[env.development.vars]
+ENVIRONMENT = "development"
+
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "shec-development"
+database_id = "your-development-database-id-here"
+
+# Custom domain configuration
+# [env.production.routes]
+# pattern = "shec.yourdomain.com/*"
+# zone_name = "yourdomain.com"
+
+# KV storage for resource caching
+# [[env.production.kv_namespaces]]
+# binding = "RESOURCES_CACHE"
+# id = "your-kv-namespace-id"
+
+# R2 storage for PDF files
+# [[env.production.r2_buckets]]
+# binding = "RESOURCES_BUCKET"
+# bucket_name = "shec-resources"
