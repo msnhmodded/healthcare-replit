@@ -1,6 +1,7 @@
 name = "somali-health-equity-collective"
 main = "src/worker.ts"
 compatibility_date = "2024-01-15"
+compatibility_flags = ["nodejs_compat"]
 
 [build]
 command = "npm run build:worker"
@@ -11,11 +12,11 @@ ENVIRONMENT = "production"
 [env.development.vars]
 ENVIRONMENT = "development"
 
-# Static assets
+# Static assets configuration
 [[rules]]
 type = "Text"
-globs = ["**/*.html", "**/*.txt"]
+globs = ["**/*.html", "**/*.txt", "**/*.js", "**/*.css"]
 
 [[rules]]
 type = "Data"
-globs = ["**/*.pdf", "**/*.jpg", "**/*.png"]
+globs = ["**/*.pdf", "**/*.jpg", "**/*.png", "**/*.ico"]
