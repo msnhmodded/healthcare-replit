@@ -1,132 +1,138 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Play, Download, ExternalLink, Search, Filter, CheckCircle } from "lucide-react";
-import { Resource } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  FileText, 
+  Play, 
+  Download, 
+  ExternalLink, 
+  Search, 
+  Filter, 
+  CheckCircle, 
+  Calculator,
+  Apple,
+  BookOpen,
+  Eye,
+  X
+} from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { getTranslation, getTranslationContent } from "@/lib/i18n";
+import { getTranslationContent } from "@/lib/i18n";
+import { resourcesData, resourceCategories, type ResourceItem } from "@shared/resources-data";
 
-const resourceCategories = [
-  {
-    key: "all",
-    labelEn: "All Resources",
-    labelSo: "Dhammaan Khayraadka",
-    icon: FileText,
-    color: "text-gray-700",
-    bgColor: "bg-gray-100"
-  },
-  {
-    key: "health-guides",
-    labelEn: "Health Guides",
-    labelSo: "Hagaha Caafimaadka",
-    icon: FileText,
-    color: "text-primary",
-    bgColor: "bg-primary/10"
-  },
-  {
-    key: "nutrition",
-    labelEn: "Nutrition Resources",
-    labelSo: "Khayraadka Nafaqada",
-    icon: FileText,
-    color: "text-secondary",
-    bgColor: "bg-secondary/10"
-  },
-  {
-    key: "videos",
-    labelEn: "Video Library",
-    labelSo: "Maktabadda Video",
-    icon: Play,
-    color: "text-accent",
-    bgColor: "bg-accent/10"
-  },
-  {
-    key: "tools",
-    labelEn: "Mobile Tools",
-    labelSo: "Qalabka Gacanta",
-    icon: FileText,
-    color: "text-warning",
-    bgColor: "bg-warning/10"
-  },
-  {
-    key: "directory",
-    labelEn: "Healthcare Directory",
-    labelSo: "Buugga Daryeelka Caafimaadka",
-    icon: FileText,
-    color: "text-purple-600",
-    bgColor: "bg-purple-100"
-  },
-  {
-    key: "forms",
-    labelEn: "Downloadable Forms",
-    labelSo: "Foomamka la soo dejin karo",
-    icon: Download,
-    color: "text-green-600",
-    bgColor: "bg-green-100"
-  }
-];
+// Tool components
+import { BMICalculator } from "@/components/tools/BMICalculator";
+import { MedicationTracker } from "@/components/tools/MedicationTracker";
+import { SymptomJournal } from "@/components/tools/SymptomJournal";
+import { AppointmentReminder } from "@/components/tools/AppointmentReminder";
+import { HealthGoalsTracker } from "@/components/tools/HealthGoalsTracker";
 
-const getSampleResources = (category: string, language: 'en' | 'so') => {
-  const samples: Record<string, Array<{en: string, so: string}>> = {
-    'health-guides': [
-      { en: 'Diabetes Management Guide', so: 'Hagaha Maaraynta Sonkorowga' },
-      { en: 'Heart Health Handbook', so: 'Buugga Caafimaadka Wadnaha' },
-      { en: 'Mental Wellness Guide', so: 'Hagaha Ladnaanta Maskaxda' },
-      { en: 'Hypertension Control', so: 'Kontoroolka Dhiig-karka' },
-      { en: 'Preventive Care Checklist', so: 'Liiska Daryeelka Ka-hortagga' }
-    ],
-    'nutrition': [
-      { en: 'Healthy Somali Recipes', so: 'Cuntooyinka Caafimaadka leh ee Soomaalida' },
-      { en: 'Diabetic Meal Planning', so: 'Qorshaha Cuntada Sonkoraha' },
-      { en: 'Family Nutrition Tips', so: 'Tilmaamaha Nafaqada Qoyska' },
-      { en: 'Traditional Foods & Health', so: 'Cuntooyinka Dhaqameedka & Caafimaadka' },
-      { en: 'Ramadan Healthy Eating', so: 'Cuntada Caafimaadka leh ee Ramadaanka' }
-    ],
-    'videos': [
-      { en: 'Workshop Recordings', so: 'Duubista Tababarrada' },
-      { en: 'Exercise Demonstrations', so: 'Bandhigga Jimicsiga' },
-      { en: 'Community Stories', so: 'Sheekooyinka Bulshada' },
-      { en: 'Medication Management', so: 'Maaraynta Daawooyinka' },
-      { en: 'Healthcare Navigation', so: 'Hagista Daryeelka Caafimaadka' }
-    ],
-    'tools': [
-      { en: 'BMI Calculator', so: 'Xisaabiyaha BMI' },
-      { en: 'Medication Tracker', so: 'Raadraaca Daawooyinka' },
-      { en: 'Symptom Journal', so: 'Buugga Calaamadaha' },
-      { en: 'Appointment Reminder', so: 'Xusuusinta Ballaanta' },
-      { en: 'Health Goals Tracker', so: 'Raadraaca Yoolalka Caafimaadka' }
-    ],
-    'directory': [
-      { en: 'Family Doctors', so: 'Takhaatiirta Qoyska' },
-      { en: 'Specialists & Clinics', so: 'Takhaasusyada & Cisbitaalada' },
-      { en: 'Mental Health Services', so: 'Adeegyada Caafimaadka Maskaxda' },
-      { en: 'Pharmacy Locations', so: 'Goobaha Farmashiyada' },
-      { en: 'Emergency Services', so: 'Adeegyada Degdegga ah' }
-    ],
-    'forms': [
-      { en: 'Appointment Preparation', so: 'Diyaarinta Ballaanta' },
-      { en: 'Medical History Template', so: 'Qaabka Taariihka Caafimaadka' },
-      { en: 'Emergency Contact Cards', so: 'Kaardadka Xiriirka Degdegga ah' },
-      { en: 'Insurance Information', so: 'Macluumaadka Caymiska' },
-      { en: 'Medication List Template', so: 'Qaabka Liiska Daawooyinka' }
-    ]
-  };
-  return samples[category] || [];
+const iconMap = {
+  FileText,
+  Play,
+  Download,
+  Calculator,
+  Apple,
+  BookOpen,
+  ExternalLink,
+  CheckCircle,
 };
 
-function ResourceCard({ category, onViewCategory }: { category: any, onViewCategory: (cat: string) => void }) {
+function ResourceCard({ resource, onAction }: { resource: ResourceItem, onAction: (resource: ResourceItem, action: string) => void }) {
   const { language } = useLanguage();
-  const IconComponent = category.icon;
-  const sampleResources = getSampleResources(category.key, language);
+  
+  const getActionButtons = (resource: ResourceItem) => {
+    switch (resource.type) {
+      case 'pdf':
+      case 'form':
+        return (
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => onAction(resource, 'download')}
+              className="flex-1"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Download' : 'Soo deji'}
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onAction(resource, 'view')}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          </div>
+        );
+      case 'video':
+        return (
+          <Button 
+            size="sm" 
+            onClick={() => onAction(resource, 'watch')}
+            className="w-full"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Watch Video' : 'Daawashada Video'}
+          </Button>
+        );
+      case 'tool':
+        return (
+          <Button 
+            size="sm" 
+            onClick={() => onAction(resource, 'open')}
+            className="w-full"
+          >
+            <Calculator className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Open Tool' : 'Fur Qalabka'}
+          </Button>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Card className="bg-gray-50 hover:shadow-lg transition-shadow h-full">
+    <Card className="hover:shadow-lg transition-shadow h-full">
+      <CardContent className="p-6 flex flex-col h-full">
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-lg font-semibold text-charcoal flex-1 leading-tight">
+            {getTranslationContent(resource.title, language)}
+          </h3>
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ml-3 flex-shrink-0">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+        </div>
+        
+        <p className="text-gray-700 text-sm mb-4 flex-1">
+          {getTranslationContent(resource.description, language)}
+        </p>
+        
+        <div className="mt-auto">
+          {getActionButtons(resource)}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CategoryCard({ category, onNavigate }: { category: any, onNavigate: (categoryKey: string) => void }) {
+  const { language } = useLanguage();
+  const IconComponent = iconMap[category.icon as keyof typeof iconMap] || FileText;
+  
+  // Get sample resources for this category
+  const categoryResources = resourcesData.filter(r => r.category === category.key);
+  
+  return (
+    <Card 
+      className="bg-gray-50 hover:shadow-lg transition-shadow h-full cursor-pointer group"
+      onClick={() => onNavigate(category.key)}
+    >
       <CardContent className="p-6 flex flex-col h-full">
         <div className="flex items-center mb-4">
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center mr-4 ${category.bgColor}`}>
+          <div className={`w-12 h-12 rounded-lg flex items-center justify-center mr-4 ${category.bgColor} group-hover:scale-105 transition-transform`}>
             <IconComponent className={`w-6 h-6 ${category.color}`} />
           </div>
           <h3 className="text-xl font-semibold text-charcoal">
@@ -142,24 +148,74 @@ function ResourceCard({ category, onViewCategory }: { category: any, onViewCateg
         </p>
         
         <ul className="space-y-2 mb-6">
-          {sampleResources.slice(0, 3).map((item, index) => (
+          {categoryResources.slice(0, 3).map((item, index) => (
             <li key={index} className="flex items-center text-sm text-gray-700">
               <CheckCircle className="w-4 h-4 text-success mr-2 flex-shrink-0" />
-              <span>{getTranslationContent(item, language)}</span>
+              <span>{getTranslationContent(item.title, language)}</span>
             </li>
           ))}
         </ul>
         
-        <Button
-          variant="ghost"
-          onClick={() => onViewCategory(category.key)}
-          className="text-primary font-semibold hover:text-primary/80 p-0 mt-auto self-start"
-        >
+        <div className="text-primary font-semibold hover:text-primary/80 flex items-center text-sm mt-auto group-hover:translate-x-1 transition-transform">
           {language === 'en' ? 'View All' : 'Dhammaantood Arag'}
           <ExternalLink className="w-4 h-4 ml-1" />
-        </Button>
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ToolModal({ toolKey, isOpen, onClose }: { toolKey: string | null, isOpen: boolean, onClose: () => void }) {
+  const { language } = useLanguage();
+  
+  const getToolComponent = () => {
+    switch (toolKey) {
+      case 'bmi-calculator':
+        return <BMICalculator />;
+      case 'medication-tracker':
+        return <MedicationTracker />;
+      case 'symptom-journal':
+        return <SymptomJournal />;
+      case 'appointment-reminder':
+        return <AppointmentReminder />;
+      case 'health-goals-tracker':
+        return <HealthGoalsTracker />;
+      default:
+        return (
+          <div className="p-8 text-center">
+            <p className="text-gray-600">
+              {language === 'en' ? 'Tool not found' : 'Qalabka lama helin'}
+            </p>
+          </div>
+        );
+    }
+  };
+
+  const getToolTitle = () => {
+    const titles = {
+      'bmi-calculator': { en: 'BMI Calculator', so: 'Xisaabiyaha BMI' },
+      'medication-tracker': { en: 'Medication Tracker', so: 'Raadraaca Daawooyinka' },
+      'symptom-journal': { en: 'Symptom Journal', so: 'Buugga Calaamadaha' },
+      'appointment-reminder': { en: 'Appointment Reminder', so: 'Xusuusinta Ballaanta' },
+      'health-goals-tracker': { en: 'Health Goals Tracker', so: 'Raadraaca Yoolalka Caafimaadka' }
+    };
+    return titles[toolKey as keyof typeof titles]?.[language] || 'Tool';
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <span>{getToolTitle()}</span>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        {getToolComponent()}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -171,10 +227,32 @@ export default function Resources() {
     const params = new URLSearchParams(location.split('?')[1] || '');
     return params.get('category') || 'all';
   });
+  const [toolModalOpen, setToolModalOpen] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-  const { data: resources = [], isLoading } = useQuery({
-    queryKey: selectedCategory === 'all' ? ['/api/resources'] : ['/api/resources', { category: selectedCategory }],
-  });
+  // Filter and search logic
+  const filteredResources = useMemo(() => {
+    let filtered = resourcesData;
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(resource => resource.category === selectedCategory);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(resource => 
+        resource.title.en.toLowerCase().includes(searchLower) ||
+        resource.title.so.toLowerCase().includes(searchLower) ||
+        resource.description.en.toLowerCase().includes(searchLower) ||
+        resource.description.so.toLowerCase().includes(searchLower) ||
+        resource.tags.some(tag => tag.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    return filtered;
+  }, [selectedCategory, searchTerm]);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -185,20 +263,41 @@ export default function Resources() {
     }
   };
 
-  const displayResources = selectedCategory === 'all' 
-    ? resourceCategories.filter(cat => cat.key !== 'all')
-    : [resourceCategories.find(cat => cat.key === selectedCategory)].filter(Boolean);
+  const handleResourceAction = (resource: ResourceItem, action: string) => {
+    switch (action) {
+      case 'download':
+        if (resource.fileUrl) {
+          // Create a temporary link to trigger download
+          const link = document.createElement('a');
+          link.href = resource.fileUrl;
+          link.download = getTranslationContent(resource.title, language);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+        break;
+      case 'view':
+        if (resource.fileUrl) {
+          window.open(resource.fileUrl, '_blank');
+        }
+        break;
+      case 'watch':
+        if (resource.linkUrl) {
+          window.open(resource.linkUrl, '_blank');
+        }
+        break;
+      case 'open':
+        if (resource.toolKey) {
+          setSelectedTool(resource.toolKey);
+          setToolModalOpen(true);
+        }
+        break;
+    }
+  };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="mt-4 text-lg text-gray-700">{getTranslation('common.loading', language)}</p>
-        </div>
-      </div>
-    );
-  }
+  const displayCategories = selectedCategory === 'all' 
+    ? resourceCategories.filter(cat => cat.key !== 'all')
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -247,20 +346,22 @@ export default function Resources() {
         </div>
       </section>
 
-      {/* Resources Grid */}
+      {/* Content Section */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {selectedCategory === 'all' ? (
+            /* Category Overview */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {displayResources.map((category) => (
-                <ResourceCard
+              {displayCategories.map((category) => (
+                <CategoryCard
                   key={category.key}
                   category={category}
-                  onViewCategory={handleCategoryChange}
+                  onNavigate={handleCategoryChange}
                 />
               ))}
             </div>
           ) : (
+            /* Category-specific resources */
             <div>
               <div className="mb-8">
                 <Button
@@ -270,42 +371,55 @@ export default function Resources() {
                 >
                   ← {language === 'en' ? 'Back to All Resources' : 'Dib ugu noqo Dhammaan Khayraadka'}
                 </Button>
-                <h2 className="text-2xl font-bold text-charcoal">
-                  {displayResources[0] && (language === 'en' ? displayResources[0].labelEn : displayResources[0].labelSo)}
+                <h2 className="text-2xl font-bold text-charcoal mb-2">
+                  {resourceCategories.find(c => c.key === selectedCategory) && 
+                    (language === 'en' 
+                      ? resourceCategories.find(c => c.key === selectedCategory)!.labelEn
+                      : resourceCategories.find(c => c.key === selectedCategory)!.labelSo
+                    )
+                  }
                 </h2>
+                <p className="text-gray-600">
+                  {language === 'en' 
+                    ? `Showing ${filteredResources.length} resource${filteredResources.length !== 1 ? 's' : ''}`
+                    : `Muujinaya ${filteredResources.length} khayraad${filteredResources.length !== 1 ? 'ka' : ''}`
+                  }
+                  {searchTerm && (
+                    <span className="ml-2">
+                      {language === 'en' ? `matching "${searchTerm}"` : `la mid ah "${searchTerm}"`}
+                    </span>
+                  )}
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getSampleResources(selectedCategory, language).map((resource, index) => (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-charcoal flex-1">
-                          {getTranslationContent(resource, language)}
-                        </h3>
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ml-3 ${displayResources[0]?.bgColor}`}>
-                          <FileText className={`w-5 h-5 ${displayResources[0]?.color}`} />
-                        </div>
-                      </div>
-                      <p className="text-gray-700 text-sm mb-4">
-                        {language === 'en' 
-                          ? "Comprehensive resource designed for Somali families in Toronto."
-                          : "Khayraad shaafici ah oo loogu talagalay qoysaska Soomaalida Toronto."
-                        }
-                      </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1">
-                          <Download className="w-4 h-4 mr-2" />
-                          {language === 'en' ? 'Download' : 'Soo deji'}
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {filteredResources.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-500 mb-4">
+                    {searchTerm ? (
+                      language === 'en' 
+                        ? `No resources found matching "${searchTerm}"`
+                        : `Lama helin khayraad la mid ah "${searchTerm}"`
+                    ) : (
+                      language === 'en' 
+                        ? "No resources available in this category"
+                        : "Lama helin khayraad ku jira qaybtan"
+                    )}
+                  </div>
+                  <Button onClick={() => { setSearchTerm(''); handleCategoryChange('all'); }}>
+                    {language === 'en' ? 'View All Resources' : 'Arag Dhammaan Khayraadka'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredResources.map((resource) => (
+                    <ResourceCard
+                      key={resource.id}
+                      resource={resource}
+                      onAction={handleResourceAction}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -345,6 +459,16 @@ export default function Resources() {
           </div>
         </div>
       </section>
+
+      {/* Tool Modal */}
+      <ToolModal 
+        toolKey={selectedTool}
+        isOpen={toolModalOpen}
+        onClose={() => {
+          setToolModalOpen(false);
+          setSelectedTool(null);
+        }}
+      />
     </div>
   );
 }
